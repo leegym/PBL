@@ -124,7 +124,7 @@ CREATE TABLE law_chunks (
 
     content TEXT NOT NULL,
 
-    embedding vector(1536) NOT NULL,
+    embedding vector(1024) NOT NULL,
 
     chunk_index INT NOT NULL,
 
@@ -164,7 +164,7 @@ CREATE TABLE knowledge_chunks (
 
     content TEXT NOT NULL,
 
-    embedding vector(1536) NOT NULL,
+    embedding vector(1024) NOT NULL,
 
     chunk_index INT NOT NULL,
 
