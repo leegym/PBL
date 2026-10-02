@@ -5,8 +5,13 @@ import pandas as pd
 
 start_time = time.time()
 
+# 검색하고자하는 위치를 영어로
+# 파일명을 저장하기위해 사용
+place = "Chiramdong" 
+
 # 크롤링할 네이버 부동산 주소 입력
-search_url = "https://new.land.naver.com/rooms?ms=2za07m,3A2kge,16&a=APT:OPST:ABYG:OBYG:GM:OR:DDDGG:JWJT:SGJT:VL&e=RETAIL&aa=SMALLSPCRENT"
+search_url = "https://new.land.naver.com/rooms?ms=2za1Im,3A2lgx,16&a=APT:OPST:ABYG:OBYG:GM:OR:DDDGG:JWJT:SGJT:VL&e=RETAIL&aa=SMALLSPCRENT"
+
 
 # 크롤링해서 추출할 데이터 정의
 security_deposit = None # 보증금
@@ -28,7 +33,8 @@ building_use = None # 건축물 용도
 listing_ID = None # 매물번호
 total_parking_spaces = None # 총주차대수
 image_urls = None # 이미지 url
-real_estate_agency = None # 중개사무소
+real_estate_agency = None # 공인중개사무소
+
 
 def run(playwright):
     # 우회, 자동태그 비활성화
@@ -114,7 +120,7 @@ def run(playwright):
                         if criteria.count() > 0: # 예외 처리
                             maintenance_cost_criteria = criteria.inner_text()
                         else:
-                            maintenance_cost_criteria = ""
+                            maintenance_cost_criteria = "정액관리비"
 
                         move_possible = panel.locator("th:has-text('입주가능일') + td").inner_text() # 입주가능일
                         approval_use_date = panel.locator("th:has-text('사용승인일') + td, th:has-text('사용검사일') + td").inner_text() # 사용승인일
@@ -162,7 +168,7 @@ def run(playwright):
                             "건축물 용도" : building_use,
                             "매물번호" : listing_ID,
                             "총주차대수" : total_parking_spaces,
-                            "중개사무소" : real_estate_agency,
+                            "공인중개사무소" : real_estate_agency,
                             "이미지" : image_urls
                         })
                         print(f"수집 완료: {i}")
@@ -198,8 +204,8 @@ if __name__ == "__main__":
         result = run(p)
 
         df = pd.DataFrame(data=result)
-        df.to_csv("home_result.csv", index=False, encoding="utf-8-sig")
-        print("저장 완료 (home_result.csv)")
+        df.to_csv(f"{place}_result.csv", index=False, encoding="utf-8-sig")
+        print(f"저장 완료 ({place}_result.csv)")
 
         end_time = time.time()
         print(f"총 소요 시간: {end_time - start_time:.2f}초")
