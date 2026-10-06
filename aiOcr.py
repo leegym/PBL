@@ -1,4 +1,5 @@
 # pip install requests
+#업스테이지 ocr api 사용
 
 import requests
 import os
