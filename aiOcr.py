@@ -4,7 +4,7 @@
 import requests
 import os
 
-api_key = "up_opdQOwaudjgnGaO5D2Q34xknTHcBe" # ex: up_xxxYYYzzzAAAbbbCCC
+api_key = 
 
 def ocr(file_path):
     url = "https://api.upstage.ai/v1/document-digitization"
