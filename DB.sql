@@ -18,6 +18,7 @@ CREATE TABLE users (
     liked_review_ids INT[] NOT NULL DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    liked_comment_ids INT[] NOT NULL DEFAULT '{}',
     CHECK (
         (provider = 'local' AND password_hash IS NOT NULL AND provider_user_id IS NULL)
         OR
@@ -115,7 +116,6 @@ CREATE TABLE articles (
     article_title TEXT,
     effective_from DATE NOT NULL,
     effective_to DATE,
-    is_mandatory BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     CHECK (effective_to IS NULL OR effective_to >= effective_from),
     UNIQUE (law_id, article_no, effective_from)
@@ -187,20 +187,6 @@ CREATE TABLE contracts (
 CREATE INDEX idx_contracts_user ON contracts (user_id);
 
 
--- 계약서 조각
-CREATE TABLE contract_chunks (
-    id SERIAL PRIMARY KEY,
-    contract_id INT NOT NULL
-        REFERENCES contracts(id) ON DELETE CASCADE,
-    content TEXT NOT NULL,
-    embedding vector(1024) NOT NULL,
-    chunk_index INT NOT NULL CHECK (chunk_index >= 0),
-    page_no INT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (contract_id, chunk_index)
-);
-
-
 -- 계약서 특약 분석 결과
 CREATE TABLE contract_findings (
     id SERIAL PRIMARY KEY,
@@ -214,7 +200,7 @@ CREATE TABLE contract_findings (
     level TEXT NOT NULL
         CHECK (level IN ('risk', 'caution', 'normal')),
     decided_by TEXT NOT NULL
-        CHECK (decided_by IN ('rule', 'catch_all', 'law_check', 'llm_adjust')),
+        CHECK (decided_by IN ('rule', 'catch_all', 'llm_adjust')),
     rule_id TEXT,
     review_priority BOOLEAN NOT NULL DEFAULT false,
     precedent_dispute BOOLEAN NOT NULL DEFAULT false,
@@ -227,14 +213,12 @@ CREATE TABLE contract_findings (
     case_refs JSONB,
     order_no INT NOT NULL,
     extracted JSONB,
-    judgment_log JSONB,
     CHECK ((decided_by IN ('rule', 'catch_all')) = (rule_id IS NOT NULL)),
     CHECK (decided_by <> 'catch_all' OR level = 'normal'),
-    CHECK (decided_by <> 'law_check' OR level = 'risk'),
     CHECK (level = 'caution' OR (NOT review_priority AND NOT precedent_dispute)),
-    CHECK (decided_by NOT IN ('rule', 'law_check') OR evidence IS NOT NULL),
+    CHECK (decided_by <> 'rule' OR evidence IS NOT NULL),
     CHECK (evidence IS NULL OR evidence NOT IN ('{}'::jsonb, '[]'::jsonb)),
-    CHECK (precedent_dispute = (case_refs IS NOT NULL)),
+    CHECK (NOT precedent_dispute OR case_refs IS NOT NULL),
     CHECK (case_refs IS NULL OR case_refs NOT IN ('{}'::jsonb, '[]'::jsonb)),
     UNIQUE (contract_id, clause_no, unit_index),
     UNIQUE (contract_id, order_no)
@@ -287,18 +271,6 @@ CREATE TABLE registry_findings (
 );
 
 
--- 계약서 기반 AI 채팅
-CREATE TABLE messages (
-    id SERIAL PRIMARY KEY,
-    contract_id INT NOT NULL
-        REFERENCES contracts(id) ON DELETE CASCADE,
-    role TEXT NOT NULL CHECK (role IN ('user', 'ai')),
-    content TEXT NOT NULL,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_messages_contract ON messages (contract_id, created_at);
-
-
 -- 자주 묻는 질문
 CREATE TABLE faqs (
     id SERIAL PRIMARY KEY,
@@ -306,7 +278,7 @@ CREATE TABLE faqs (
         CHECK (category IN ('contract', 'registry', 'living', 'app')),
     question TEXT NOT NULL,
     answer TEXT NOT NULL,
-    sort_order INT NOT NULL DEFAULT 0
+    source TEXT
 );
 
 
@@ -463,6 +435,7 @@ CREATE TABLE comments (
     is_anonymous BOOLEAN NOT NULL DEFAULT false,
     is_deleted BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    like_count INT NOT NULL DEFAULT 0 CHECK (like_count >= 0),
     UNIQUE (post_id, id),
     FOREIGN KEY (post_id, parent_id)
         REFERENCES comments (post_id, id) ON DELETE CASCADE
