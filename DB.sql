@@ -182,6 +182,7 @@ CREATE TABLE contracts (
     status TEXT NOT NULL DEFAULT 'pending'
         CHECK (status IN ('pending', 'processing', 'waiting_input', 'completed', 'failed')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    property_address TEXT,
     CHECK (lease_start IS NULL OR lease_end IS NULL OR lease_end > lease_start)
 );
 CREATE INDEX idx_contracts_user ON contracts (user_id);
